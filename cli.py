@@ -29,6 +29,11 @@ def traverseDict(dictionary,counter=0):
             if x!="type":
                 print("     "*counter,x,sep="|-")
                 traverseDict(dictionary[x],counter+1)
+def absoluteRelative(currentPath,path):
+    if path[0]=="/":
+        return path
+    else:
+        return os.path.join(currentPath,path)
 class CLI(Cmd):
     global ns_con
     ROOT_PATH = config['logicalFolder']
@@ -36,7 +41,7 @@ class CLI(Cmd):
     intro = "Welcome to YADFS.\n"
     prompt = "YADFS >>"
     def do_mkdir(self,dir):
-        callback = ns_con.root.mkdir(os.path.join(self.CURRENT_PATH,dir))
+        callback = ns_con.root.mkdir(absoluteRelative(self.CURRENT_PATH,dir))
         print(callback)
     def do_rmdir(self,dir):
         print(dir)
@@ -44,16 +49,29 @@ class CLI(Cmd):
         callback = ns_con.root.vt(self.ROOT_PATH)
         print("YADFS")
         traverseDict(json.loads(callback),1)
+    def do_rmdir(self,dir):
+        callback = ns_con.root.rmdir(absoluteRelative(self.CURRENT_PATH,dir))
+        print(callback)
+    def do_cp(self,dirs):
+        srcFile = absoluteRelative(self.CURRENT_PATH,dirs.split(' ')[0])
+        destFile = absoluteRelative(self.CURRENT_PATH,dirs.split(' ')[1])
+        callback = ns_con.root.cp(srcFile,destFile)
+        print(callback)
+    def do_mv(self,dirs):
+        srcFile = absoluteRelative(self.CURRENT_PATH,dirs.split(' ')[0])
+        destFile = absoluteRelative(self.CURRENT_PATH,dirs.split(' ')[1])
+        callback = ns_con.root.mv(srcFile,destFile)
+        print(callback)
     def do_cd(self,dir):
         if dir=='..':
            self.CURRENT_PATH = os.path.dirname(self.CURRENT_PATH)
            print("Changed to: ",self.CURRENT_PATH)
         else:
-            checkFileExists = ns_con.root.cd(os.path.join(self.CURRENT_PATH,dir))
+            checkFileExists = ns_con.root.cd(absoluteRelative(self.CURRENT_PATH,dir))
             if checkFileExists=="Err: Path does not exist":
                 print(checkFileExists)
             else:
-                self.CURRENT_PATH = os.path.join(self.CURRENT_PATH,dir)
+                self.CURRENT_PATH = absoluteRelative(self.CURRENT_PATH,dir)
                 print("Changed to: ",self.CURRENT_PATH)
     def do_pwd(self,args):
         print(self.CURRENT_PATH)
@@ -66,7 +84,7 @@ class CLI(Cmd):
     def do_get(self,arg):
         localPath = arg.split(' ')[0]
         yadfsPath = arg.split(' ')[1]   
-        metadataString = ns_con.root.get(os.path.join(self.CURRENT_PATH,yadfsPath))
+        metadataString = ns_con.root.get(absoluteRelative(self.CURRENT_PATH,yadfsPath))
         if metadataString=="Err: Not a file":
             print("Err: Not a file")
         else:
@@ -113,7 +131,7 @@ class CLI(Cmd):
                     blockDict[blockName] = specificDataNodes
                     blockDict['blocks'].append(blockName)
                     blockData = lf.read(config['blockSize'])
-            ns_con.root.put(os.path.join(self.CURRENT_PATH,yadfsPath),json.dumps(blockDict))
+            ns_con.root.put(absoluteRelative(self.CURRENT_PATH,yadfsPath),json.dumps(blockDict))
 
 if connect_ns():
     CLI().cmdloop()

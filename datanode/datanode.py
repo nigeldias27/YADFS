@@ -8,7 +8,7 @@ class DataNodeServerService(rpyc.Service):
     folder = os.path.join(config['rootFolder'],'localhost_'+str(sys.argv[1:][0]))
     with open(os.path.join(folder,blockName), 'wb') as f:
       f.write(data)
-    print('Putting block "{}" here.'.format(blockName))
+    print('Putting block "{}" in localhost:{}'.format(blockName,str(sys.argv[1:][0])))
 
   def exposed_get(self, blockName):
     folder = os.path.join(config['rootFolder'],'localhost_'+str(sys.argv[1:][0]))

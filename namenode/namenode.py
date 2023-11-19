@@ -86,6 +86,36 @@ class NameNodeServerService(rpyc.Service):
        if metadata==None or 'blocks' not in metadata.keys():
                 return "Err: Not a file"
        return json.dumps(metadata)
+    def exposed_rmdir(self,path):
+        ref = db.reference(path)
+        metadata = ref.get(False,True)
+        metadataKeys = metadata.keys()
+        if 'type' in metadataKeys and len(metadataKeys)==1:
+            db.reference(path).set({})
+            return "Directory Removed"
+        else:
+            return "Error because the path is either a file or a non-empty folder"
+    def exposed_mv(self,src,dest):
+        ref1 = db.reference(src)
+        metadata = ref1.get()
+        if 'blocks' in metadata:
+            parFileSplit = os.path.split(dest)
+            ref2 = db.reference(parFileSplit[0])
+            ref2.update({parFileSplit[1]:metadata})
+            db.reference(src).set({})
+            return "Moved to "+dest
+        else:
+            return "Error with src path"
+    def exposed_cp(self,src,dest):
+        ref1 = db.reference(src)
+        metadata = ref1.get()
+        if 'blocks' in metadata:
+            parFileSplit = os.path.split(dest)
+            ref2 = db.reference(parFileSplit[0])
+            ref2.update({parFileSplit[1]:metadata})
+            return "Copied to "+dest
+        else:
+            return "Error with src path"
 if __name__=="__main__":
   from rpyc.utils.server import ThreadedServer
   t = ThreadedServer(NameNodeServerService(), port=config['nameNode'][1])
