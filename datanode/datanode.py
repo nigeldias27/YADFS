@@ -20,7 +20,8 @@ class DataNodeServerService(rpyc.Service):
     return data
   def exposed_delBlock(self,blockName):
      folder = os.path.join(config['rootFolder'],'localhost_'+str(sys.argv[1:][0]))
-     os.remove(os.path.join(folder,blockName))
+     if os.path.exists(os.path.join(folder,blockName)):
+        os.remove(os.path.join(folder,blockName))
   def exposed_truncate(self):
     folder = os.path.join(config['rootFolder'],'localhost_'+str(sys.argv[1:][0]))
     files = os.listdir(folder)
