@@ -128,7 +128,8 @@ class CLI(Cmd):
                     specificDataNodes = random.sample(dataNodes,config['replicationFactor'])
                     for ipPort in specificDataNodes:
                         conn = rpyc.connect(ipPort.split(':')[0],int(ipPort.split(':')[1]))
-                        conn.root.put(blockName,blockData)
+                        res = conn.root.put(blockName,blockData)
+                        print(res)
                         conn.close()
                     blockDict[blockName] = specificDataNodes
                     blockDict['blocks'].append(blockName)
