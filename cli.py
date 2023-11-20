@@ -80,7 +80,9 @@ class CLI(Cmd):
         for x in json.loads(lsFiles):
             if x!="type":
                 print(x)
-
+    def do_rm(self,file):
+        rmFile = ns_con.root.rmFile(absoluteRelative(self.CURRENT_PATH,file))
+        print(rmFile)
     def do_get(self,arg):
         localPath = arg.split(' ')[0]
         yadfsPath = arg.split(' ')[1]   

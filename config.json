@@ -5,5 +5,10 @@
   "logicalFolder": "/YADFS",
   "alivenessInterval": 600,
   "nameNode": ["localhost", 1234],
-  "dataNodes": ["localhost:1235", "localhost:1236", "localhost:1237"]
+  "dataNodes": [
+    "localhost:1235",
+    "localhost:1236",
+    "localhost:1237",
+    "localhost:1238"
+  ]
 }

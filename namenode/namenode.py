@@ -4,6 +4,10 @@ from threading import Thread
 import rpyc
 import json
 import time
+import os
+import glob
+import random
+
 f = open('../config.json')
 config = json.load(f)
 cred = credentials.Certificate("elections-255d1-firebase-adminsdk-qckpp-6ad0a7522d.json")
@@ -21,6 +25,16 @@ def createDNFolder():
       print(os.path.join(config['rootFolder'],x.replace(':','_')))
       Path(os.path.join(config['rootFolder'],x.replace(':','_'))).mkdir(parents=True, exist_ok=True)
 
+def traverseDict(dictionary,path=config['logicalFolder']):
+    files = []
+    if 'blocks' in dictionary.keys():
+            dictionary['path'] = path
+            return [dictionary]
+    else:
+        for x in dictionary:
+            if x!='type':
+                files.extend(traverseDict(dictionary[x],os.path.join(path,x)))
+        return files
 def this_ss_is_alive(ip, port):
   try:
     conn = rpyc.connect(ip, int(port))
@@ -39,12 +53,48 @@ class NameNodeServerService(rpyc.Service):
     # check aliveness & take actions
         check_count += 1
         print('Checking aliveness of storage servers...({})'.format(check_count))
-        modified = False
         for name in range(len(config['dataNodes'])):
             dn = config['dataNodes'][name].split(":")
             if this_ss_is_alive(dn[0], dn[1]):
+                if self.dnAlive[name] ==0:
+                    conn = rpyc.connect(config['dataNodes'][name].split(':')[0],int(config['dataNodes'][name].split(':')[1]))
+                    conn.root.truncate()
+                    conn.close()
                 self.dnAlive[name] = 1 # set alive flag if was not before
             else:
+                if self.dnAlive[name] == 1:
+                    ref = db.reference(config['logicalFolder'])
+                    values = ref.get()
+                    filesMetadata = traverseDict(values)
+                    for fileMetadata in filesMetadata:
+                        for block in fileMetadata:
+                            if block != 'blocks' and block!="path" and config['dataNodes'][name] in fileMetadata[block]:
+                                    availableDN = [config['dataNodes'][temp] for temp in range(len(config['dataNodes'])) if self.dnAlive[temp]==1]
+                                    dnDataCanBeForwarded = list(set(availableDN) - set(fileMetadata[block]))
+                
+                                    dnDataExists = list((set(availableDN) & set(fileMetadata[block]))-{config['dataNodes'][name]})
+
+                                    if len(dnDataCanBeForwarded)==0 or len(dnDataExists)==0:
+                                        print("Sufficient Data nodes are not active to maintain replication factor")
+                                    else:
+                                        fromDN = random.choice(dnDataExists)
+                              
+                                        toDN = random.choice(dnDataCanBeForwarded)
+                            
+                                        print('Forwarding block',block,'from',fromDN,'to',toDN)
+                                        connfrom = rpyc.connect(fromDN.split(':')[0],int(fromDN.split(':')[1]))
+                                        data = connfrom.root.get(block)
+                                        connfrom.close()
+                                        connto = rpyc.connect(toDN.split(':')[0],int(toDN.split(':')[1]))
+                                        connto.root.put(block,data)
+                                        connto.close()
+                                        blockDNcopy = list(fileMetadata[block])
+                                        for t in range(len(blockDNcopy)):
+                                            if blockDNcopy[t]==config['dataNodes'][name]:
+                                                blockDNcopy[t]=toDN
+                 
+                                        db.reference(fileMetadata['path']).update({block:blockDNcopy})
+
                 self.dnAlive[name] = 0
         
         # sleep for this time
@@ -65,8 +115,7 @@ class NameNodeServerService(rpyc.Service):
        return json.dumps(ref.get(False,False))
     def exposed_ls(self,path):
         ref = db.reference(path)
-        files = ref.get(False,True)
-        print(files)
+        files = ref.get(False,False)
         return json.dumps(files)
     def exposed_cd(self,path):
        ref = db.reference(path)
@@ -116,6 +165,21 @@ class NameNodeServerService(rpyc.Service):
             return "Copied to "+dest
         else:
             return "Error with src path"
+    def exposed_rmFile(self,path):
+        ref = db.reference(path)
+        blocks = ref.get()
+        if blocks==None or 'blocks' not in blocks.keys():
+            return ("Err: Not a file")
+        else:
+            for block in blocks:
+                if block!='blocks':
+                    for datanode in blocks[block]:
+                        conn = rpyc.connect(datanode.split(':')[0],int(datanode.split(':')[1]))
+                        conn.root.delBlock(block)
+                        conn.close()
+            db.reference(path).set({})
+            return ("Removed File")
+
 if __name__=="__main__":
   from rpyc.utils.server import ThreadedServer
   t = ThreadedServer(NameNodeServerService(), port=config['nameNode'][1])

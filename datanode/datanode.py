@@ -18,7 +18,17 @@ class DataNodeServerService(rpyc.Service):
     with open(block_path, 'rb') as file:
       data = file.read()
     return data
-
+  def exposed_delBlock(self,blockName):
+     folder = os.path.join(config['rootFolder'],'localhost_'+str(sys.argv[1:][0]))
+     os.remove(os.path.join(folder,blockName))
+  def exposed_truncate(self):
+    folder = os.path.join(config['rootFolder'],'localhost_'+str(sys.argv[1:][0]))
+    files = os.listdir(folder)
+    for f in files:
+        try:
+            os.remove(os.path.join(folder,f))
+        except:
+            continue
 if __name__=="__main__":
   from rpyc.utils.server import ThreadedServer
   args = sys.argv[1:]
