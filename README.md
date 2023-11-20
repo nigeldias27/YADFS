@@ -1,28 +1,79 @@
 # Big Data project
+# YADFS - Yet Another Distributed File System
+It consists of a Name Node (Server), Data Nodes, and a Command Line Interface (CLI) for interacting with the file system.
 
-Libraries to be installed
+## Table of Contents
+- Features
+- Installation
+- Usage
+  - CLI
+  - Name Node
+  - Data Node
+ 
+- Configuration
 
-- firebase_admin
-- rpyc
+### Features
 
-Starting the cli:
-python cli.py
+- <b>Distributed Storage</b>: Distribute file data across multiple Data Nodes for fault tolerance.
+- <b>Metadata Management</b>:The Name Node handles metadata, ensuring proper organization and tracking of files.
 
-Starting the namenode:
 
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/Cloud-Computing-Big-Data/RR-Team-67-Yet-Another-Distributed-File-System-YADFS-.git
+cd RR-Team-67-Yet-Another-Distributed-File-System-YADFS-
+```
+
+2. Installation
+```bash
+pip install rpyc
+pip install firebase-admin
+```
+or
+```bash
+pip install -r requirements.txt
+```
+3. Configure `config.json`.
+```json
+{
+  "blockSize": 500,
+  "replicationFactor": 3,
+  "rootFolder": "/var/YADFS",
+  "logicalFolder": "/YADFS6",
+  "alivenessInterval": 5,
+  "nameNode": ["localhost", 1234],
+  "dataNodes": ["localhost:1235", "localhost:1236", "localhost:1237"]
+}
+```
+Port number for the 3 datanodes in the config file are 1235,1236,1237
+
+4.Start the `NameNode`.
 ```
 cd namenode
-python namenode.py
+python3 namenode.py
 ```
+NameNode Default Port No is `1234`.
 
-Starting the datanode:
-python datanode.py [portno]
-
-Port no for the 3 datanodes in the config file are 1235,1236,1237
-
+5. Start `DataNode`
 ```
+cd ..
 cd datanode
-python datanode.py 1235
+python3 datanode.py <port>
 ```
+
+6. Start CLI
+```
+cd ..
+python3 cli.py
+```
+
+Commands in `COMMAND LINE INTERFACE`:
+- ls
+- mkdir
+- cp
+- mv
+
 
 Change the rootFolder,logicalFolder attribute in the config file
